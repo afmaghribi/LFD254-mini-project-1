@@ -1,0 +1,53 @@
+version: "3.8"
+
+networks:
+  vote-app:
+    driver: bridge
+
+services:
+  vote:
+    image: 81.81.81.11:1337/library/vote:v1
+    build:
+      context: ./example-voting-app/vote
+      dockerfile: Dockerfile
+    ports:
+    - 80
+    depends_on:
+    - redis
+    networks:
+    - vote-app
+
+  result:
+    image: 81.81.81.11:1337/library/result:v1
+    build:
+      context: ./example-voting-app/result
+      dockerfile: Dockerfile
+    ports:
+    - 80
+    depends_on:
+    - db
+    networks:
+    - vote-app
+
+  worker:
+    image: 81.81.81.11:1337/library/worker:v1
+    build:
+      context: ./example-voting-app/worker
+      dockerfile: Dockerfile
+    depends_on:
+    - redis
+    - db
+    networks:
+    - vote-app
+
+  redis:
+    image: redis:6.0-alpine
+    networks:
+    - vote-app
+
+  db:
+    image: postgres:12-alpine
+    environment:
+    - POSTGRES_HOST_AUTH_METHOD=trust
+    networks:
+    - vote-app

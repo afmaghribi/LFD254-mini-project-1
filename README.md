@@ -3,15 +3,25 @@ This repository contains step by step to finish task `mini-project-1` of `CONTAI
 # Project Spec
 
 → given task to containerizing an application
+
 → make it as microservices
+
 → building images and then deploy the application using `docker-compose`
+
 → Before containerizing application, first we need to understand application stack before run it as microservices
+
 → vote ui → python
+
 → result ui → node.js
+
 → redis
+
 → db → postgresql
+
 → worker → .NET/Java
+
 → redis and potgres can use images from public repository. The rest app need to build manually
+
 → then create docker-compose spec to run the microservices
 
 Before start, first clone the application repository
@@ -157,3 +167,78 @@ docker run -it --rm 81.81.81.11:1337/library/worker:v1
 docker login http://81.81.81.11:1337
 docker push 81.81.81.11:1337/library/worker:v1
 ```
+
+
+## 4. Run all container as microservices
+
+- Create `docker-compose.yaml`
+
+```
+version: "3.8"
+
+networks:
+  vote-app:
+    driver: bridge
+
+services:
+  vote:
+    image: 81.81.81.11:1337/library/vote:v1
+    build:
+      context: ./example-voting-app/vote
+      dockerfile: Dockerfile
+    ports:
+    - 80
+    depends_on:
+    - redis
+    networks:
+    - vote-app
+
+  result:
+    image: 81.81.81.11:1337/library/result:v1
+    build:
+      context: ./example-voting-app/result
+      dockerfile: Dockerfile
+    ports:
+    - 80
+    depends_on:
+    - db
+    networks:
+    - vote-app
+
+  worker:
+    image: 81.81.81.11:1337/library/worker:v1
+    build:
+      context: ./example-voting-app/worker
+      dockerfile: Dockerfile
+    depends_on:
+    - redis
+    - db
+    networks:
+    - vote-app
+
+  redis:
+    image: redis:6.0-alpine
+    networks:
+    - vote-app
+
+  db:
+    image: postgres:12-alpine
+    environment:
+    - POSTGRES_HOST_AUTH_METHOD=trust
+    networks:
+    - vote-app
+```
+
+- Build the image
+
+```
+docker compose build
+```
+
+- Run the microservices
+
+```
+docker compose up -d
+```
+
+- Access the application from browser  
